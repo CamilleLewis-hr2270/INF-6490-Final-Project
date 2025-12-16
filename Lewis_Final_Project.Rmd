@@ -1,0 +1,311 @@
+---
+title: "Final Project"
+author: "Camille Lewis"
+date: "2025-12-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(ggplot2) # visualization package
+library(dplyr) # provides functions for summarizing and data manipulation
+library(readr) # provides function for reading in data via .CSV file
+library(janitor) # provides utility functions for data cleaning and manipulation
+library(ggthemes) # provides a collection of themes for customizing the appearance of plots created with ggplot2
+library(tidyverse)
+library(tidyr)
+library(psych)
+library(caret)
+library(broom)
+```
+
+```{r}
+# Import data
+student_data <- read.csv("student_depression_dataset.csv")
+```
+
+## Initial Inspection
+```{r}
+# Inspect data
+str(student_data)
+summary(student_data)
+```
+## Data Cleaning and Preprocessing
+```{r}
+# Check for missing values
+sum(is.na(student_data))
+
+student_data <- student_data %>%
+  drop_na(
+    Academic.Pressure, CGPA, Study.Satisfaction,
+    Sleep.Duration, Financial.Stress,
+    Family.History.of.Mental.Illness,
+    Work.Study.Hours, Gender, Age, Depression
+  )
+```
+
+```{r}
+# Remove records that contain non-numeric values for numeric fields
+
+# Age
+student_data <- student_data[!is.na(as.numeric(student_data$Age)), ]
+nrow(student_data)
+# Academic.Pressure
+student_data <- student_data[!is.na(as.numeric(student_data$Academic.Pressure)), ]
+nrow(student_data)
+# Work.Pressure
+student_data <- student_data[!is.na(as.numeric(student_data$Work.Pressure)), ]
+nrow(student_data)
+# CGPA
+student_data <- student_data[!is.na(as.numeric(student_data$CGPA)), ]
+nrow(student_data)
+# Study.Satisfaction
+student_data <- student_data[!is.na(as.numeric(student_data$Study.Satisfaction)), ]
+nrow(student_data)
+# Job.Satisfaction
+student_data <- student_data[!is.na(as.numeric(student_data$Job.Satisfaction)), ]
+nrow(student_data)
+# Work.Study.Hours
+student_data <- student_data[!is.na(as.numeric(student_data$Work.Study.Hours)), ]
+nrow(student_data)
+# Financial.Stress
+student_data <- student_data[!is.na(as.numeric(student_data$Financial.Stress)), ]
+nrow(student_data)
+```
+```{r}
+summary(student_data)
+```
+```{r}
+table_depression = table(student_data$Depression)
+print(table_depression)
+barplot(table_depression, main="Depression Frequency")
+```
+```{r}
+table_gender = table(student_data$Gender)
+print(table_gender)
+barplot(table_gender, main="Gender Frequency")
+```
+```{r}
+table_sleep = table(student_data$Sleep.Duration)
+print(table_sleep)
+barplot(table_sleep, main="Sleep Duration Frequency")
+```
+
+```{r}
+table_dietary = table(student_data$Dietary.Habits)
+print(table_dietary)
+barplot(table_dietary, main="Dietary Habits Frequency")
+```
+```{r}
+table_ideation = table(student_data$Have.you.ever.had.suicidal.thoughts..)
+print(table_ideation)
+barplot(table_ideation, main="Suicidal Thoughts Frequency")
+```
+
+```{r}
+table_family = table(student_data$Family.History.of.Mental.Illness)
+print(table_family)
+barplot(table_family, main="Family History of Mental Illness Frequency")
+```
+
+
+```{r}
+# Encode categorical variables
+# Family.History.of.Mental.Illness
+student_data$Gender <- as.numeric(factor(student_data$Gender, 
+                                      levels = c("Male", "Female"),
+                                      labels = c(1, 2)))
+# Sleep.Duration
+# “Less than 5 hours,” “5-6 hours,” “7-8 hours,” “More than 8 hours,” and “Others.”
+student_data$Sleep.Duration <- as.numeric(factor(student_data$Sleep.Duration, 
+                                      levels = c("'Less than 5 hours'", "'5-6 hours'", "'7-8 hours'", "'More than 8 hours'", "'Others'"),
+                                      labels = c(1, 2, 3, 4, 0)))
+# Dietary.Habits
+# “Healthy,” “Moderate,” “Unhealthy,” and “Others.”
+student_data$Dietary.Habits <- as.numeric(factor(student_data$Dietary.Habits, 
+                                      levels = c("Unhealthy", "Moderate", "Healthy", "Others"),
+                                      labels = c(1, 2, 3, 0)))
+# Have.you.ever.had.suicidal.thoughts..
+student_data$Have.you.ever.had.suicidal.thoughts.. <- as.numeric(factor(student_data$Have.you.ever.had.suicidal.thoughts.., 
+                                      levels = c("No", "Yes"),
+                                      labels = c(0, 1)))
+# Family.History.of.Mental.Illness
+student_data$Family.History.of.Mental.Illness <- as.numeric(factor(student_data$Family.History.of.Mental.Illness, 
+                                      levels = c("No", "Yes"),
+                                      labels = c(0, 1)))
+```
+
+## Descriptive Statistics
+```{r}
+
+paste("Age")
+paste("Variance:", var(student_data$Age))
+paste("Std Dev:", sd(student_data$Age))
+
+paste("Academic Pressure 0-5")
+paste("Variance:", var(student_data$Academic.Pressure))
+paste("Std Dev:", sd(student_data$Academic.Pressure))
+
+paste("Work Pressure 0-5")
+paste("Variance:", var(student_data$Work.Pressure))
+paste("Std Dev:", sd(student_data$Work.Pressure))
+
+paste("CGPA 0-10")
+paste("Variance:", var(student_data$CGPA))
+paste("Std Dev:", sd(student_data$CGPA))
+
+paste("Study Satisfaction")
+paste("Variance:", var(student_data$Study.Satisfaction))
+paste("Std Dev:", sd(student_data$Study.Satisfaction))
+
+paste("Job Satisfaction 0-4")
+paste("Variance:", var(student_data$Job.Satisfaction))
+paste("Std Dev:", sd(student_data$Job.Satisfaction))
+
+paste("Work/Study Hours")
+paste("Variance:", var(student_data$Work.Study.Hours))
+paste("Std Dev:", sd(student_data$Work.Study.Hours))
+
+paste("Financial Stress 0-5")
+paste("Variance:", var(student_data$Financial.Stress))
+paste("Std Dev:", sd(student_data$Financial.Stress))
+```
+
+## Data Visualization
+```{r}
+# Bar plot: Depression by gender
+ggplot(student_data, aes(x = Gender, fill = factor(Depression))) +
+  geom_bar(position = "fill") +
+  labs(y = "Proportion", fill = "Depression") +
+  theme_minimal()
+
+# Age distribution by depression
+ggplot(student_data, aes(x = Age, fill = factor(Depression))) +
+  geom_histogram(bins = 20, alpha = 0.6, position = "identity") +
+  theme_minimal()
+```
+
+```{r}
+# Box plot: Academic pressure by depression
+ggplot(student_data, aes(x = factor(Depression), y = Academic.Pressure)) +
+  geom_boxplot() +
+  theme_minimal()
+```
+```{r}
+# Sleep duration boxplot
+ggplot(student_data, aes(x = factor(Depression), y = Sleep.Duration)) +
+  geom_boxplot() +
+  theme_minimal()
+
+# Financial stress stacked bar chart
+ggplot(student_data, aes(x = Financial.Stress, fill = factor(Depression))) +
+  geom_bar(position = "fill") +
+  theme_minimal()
+```
+
+
+## Statistical Analysis and Hypothesis Testing
+```{r}
+paste("Chi-square test: Depression and Gender")
+chisq.test(table(student_data$Depression, student_data$Gender))
+```
+
+```{r}
+paste("t-test: Age by Depression")
+t.test(Age ~ Depression, data = student_data)
+```
+```{r}
+paste("t-test: Academic pressure by depression")
+t.test(Academic.Pressure ~ Depression, data = student_data)
+```
+```{r}
+paste("Chi-square test: Financial stress and depression")
+chisq.test(table(student_data$Financial.Stress, student_data$Depression))
+```
+
+```{r}
+paste("t-test: Sleep duration by depression")
+t.test(Sleep.Duration ~ Depression, data = student_data)
+```
+
+
+
+## Model Building
+Logistic Regression
+```{r}
+# Logistic regression model
+depression_model <- glm(
+  Depression ~ Academic.Pressure + CGPA + Study.Satisfaction +
+    Sleep.Duration + Financial.Stress + Family.History.of.Mental.Illness +
+    Work.Study.Hours + Gender + Age,
+  data = student_data,
+  family = binomial
+)
+
+summary(depression_model)
+```
+
+```{r}
+paste("Odds ratios")
+exp(coef(depression_model))
+
+paste("Tidy model output")
+tidy(depression_model, exponentiate = TRUE, conf.int = TRUE)
+```
+```{r}
+deleted_rows_indices <- na.action(depression_model)
+print(deleted_rows_indices)
+
+deleted_rows_data <- student_data[as.numeric(deleted_rows_indices), ]
+print(deleted_rows_data)
+```
+
+```{r}
+student_data_subset <- student_data[-deleted_rows_indices, ]
+depression_model$model
+```
+
+```{r}
+
+
+# Logistic regression model
+depression_model <- glm(
+  Depression ~ Academic.Pressure + CGPA + Study.Satisfaction +
+    Sleep.Duration + Financial.Stress + Family.History.of.Mental.Illness +
+    Work.Study.Hours + Gender + Age,
+  data = student_data_subset,
+  family = binomial
+)
+
+summary(depression_model)
+
+
+# Predicted probabilities
+student_data_subset$predicted_prob[rownames(depression_model$model)] <-
+  predict(depression_model, type = "response")
+
+# Class prediction
+student_data_subset$predicted_class <- ifelse(student_data_subset$predicted_prob > 0.5, 1, 0)
+
+
+student_data_subset$predicted_class <- factor(
+  student_data_subset$predicted_class,
+  levels = c(0, 1)
+)
+
+student_data_subset$Depression <- factor(
+  student_data_subset$Depression,
+  levels = c(0, 1)
+)
+
+# Confusion matrix
+confusionMatrix(
+  student_data_subset$predicted_class,
+  student_data_subset$Depression
+)
+```
+
